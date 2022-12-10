@@ -1,0 +1,114 @@
+---
+title: "Visualizations and deciding a suitable model"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+date: "2022-12-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(pheatmap)
+library(tseries)
+library(forecast)
+library(plotly)
+library(Hmisc)
+library(ggthemes)
+library(rmarkdown)
+
+```
+
+```{r}
+#Importing section wise data set
+data_section_wise<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned section wise data set with daily total absents for a section.csv")
+data_section_wise <- mutate(data_section_wise,Date = as.Date(data_section_wise$Date,format = "%Y-%m-%d"))
+
+#Importing shift wise data set
+data_shift_wise<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned data grouped by date and shift with column of sum of shift.csv")
+data_shift_wise <- mutate(data_shift_wise,Date = as.Date(data_shift_wise$Date,format = "%Y-%m-%d"))
+
+#Importing date wise data set
+data_date_wise<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned data grouped by date with column total absent.csv")
+data_date_wise <- mutate(data_date_wise,Date = as.Date(data_date_wise$Date,format = "%Y-%m-%d"))
+```
+
+### We use plotly library for better visuals
+
+### Following graph shows section wise daily absents. Here we can see sections do not follow the same patterns thus some sections has significantly higher absent numbers than others. For an example, section D notably has higher absent number than others.
+
+## Section wise daily absents
+
+```{r}
+palette_1<-c("red","blue","green","orange")
+plot_ly(data = data_section_wise,
+        x = ~Date,
+        y = ~data_section_wise$total_absent_section,
+        type = "scatter",
+        color = ~as.factor(Section),
+        colors = palette_1,
+        symbol = ~as.factor(Section),
+        marker = list(size = 5)
+        
+)%>%
+  layout(title = "Section Wise Daily Absents",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Total Absents"))
+```
+
+## Shift wise absents
+
+### Here we can see both A and B shifts follows a same pattern where from mid Aprail, absent numbers where gradually decreasing until end of September
+
+```{r}
+#Shift wise
+#Creating color palette
+palette_2<-c("red","orange")
+plot_ly(data = data_shift_wise,
+        x = ~Date,
+        y = ~data_shift_wise$total_absent_shift,
+        type = "scatter",
+        color = ~as.factor(Shift),
+        colors = palette_2,
+        symbol = ~as.factor(Shift),
+        marker = list(size = 5)
+        
+)%>%
+  layout(title = "Shift Wise Daily Absents",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Total Absents"))
+```
+
+```{r}
+#Shift wise total absent
+ggplot(data = data_shift_wise)+
+  geom_line(mapping = aes(x=Date,y=data_shift_wise$total_absent_shift,colour = Shift))+
+  scale_x_date(date_breaks = "1 month",date_labels = "%b")+
+  ylab("Total Absents")
+```
+
+### From the above line chart we can see the moving averages of the absents. This kind of behavior is know as non stationary. It means average was changing over time. Following graph of moving average will show this more explicitly.
+
+```{r}
+### Checking monthly average
+data_date_wise$weekly_absents<-ma(data_date_wise$total_absent_shift,order=7)
+data_date_wise$monthly_absents<-ma(data_date_wise$total_absent_shift,order=30)
+
+#Plotting moving average with daily absents
+ggplot()+
+  geom_line(data = data_date_wise,aes(x=Date,y=data_date_wise$total_absent_shift,colour = "total_absent_shift"))+
+  geom_line(data = data_date_wise,aes(x=Date,y=data_date_wise$weekly_absents,colour = "weekly_absents"))+
+  geom_line(data = data_date_wise,aes(x=Date,y=data_date_wise$monthly_absents,colour = "monthly_absents"))+
+  ylab("Total Absents")
+
+```
+
+### Above graph we can see weekly and monthly averages are gradually decreasing. So we can identify this chart as a non-stationary. Also we can see seasonal spikes. So this chart is also seasonal.
+
+## To predict future absent numbers from this data set. We can use Time Series models. Because above as mentioned above chart shows non-stationery and seasonality.

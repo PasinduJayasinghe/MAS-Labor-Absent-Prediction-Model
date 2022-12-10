@@ -1,0 +1,154 @@
+---
+---
+---
+
+# MAS Labor Absent Prediction
+
+### Importing Required libraries
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(pheatmap)
+library(tseries)
+library(forecast)
+library(plotly)
+library(Hmisc)
+```
+
+### Importing the cleaned data set grouped by date and shift
+
+```{r}
+data_groupedby_date_and_shift<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned data grouped by date and shift with column of sum of shift.csv")
+data_groupedby_date_and_shift
+```
+
+### When we import the data set, date column is always imported as character column we need to convert it to date class.
+
+```{r}
+data_groupedby_date_and_shift <- mutate(data_groupedby_date_and_shift,Date = as.Date(data_groupedby_date_and_shift$Date,format = "%Y-%m-%d"))
+data_groupedby_date_and_shift%>%
+  arrange(Date)
+
+```
+
+## Visualizing the total absent for each shift against the date column
+
+```{r}
+ggplot(data_groupedby_date_and_shift)+
+  geom_line(mapping = aes(x = Date,y = total_absent_shift,colour = Shift))+
+  scale_x_date(date_breaks = "1 month",date_labels = "%b")
+
+```
+
+### According to above chart shift A and B has a roughly similar pattern.So we can use data set grouped by date with total absents for a day varible
+
+```{r}
+data_groupedby_date<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned data grouped by date with column total absent.csv")
+```
+
+### When we import the data set, date column is always imported as character column we need to convert it to date class.
+
+```{r}
+data_groupedby_date <- mutate(data_groupedby_date,Date = as.Date(data_groupedby_date$Date,format = "%Y-%m-%d"))
+data_groupedby_date%>%
+  arrange(Date)
+```
+
+## Visualizing total absents against the date column
+
+```{r}
+ggplot(data_groupedby_date)+
+  geom_line(mapping = aes(x = Date,y = total_absent_shift,colour = "Red"))+
+  scale_x_date(date_breaks = "1 month",date_labels = "%b")
+```
+
+### Quick Summary and Analyze of the data set
+
+```{r}
+summary(data_groupedby_date)
+```
+
+```{r}
+describe(data_groupedby_date)
+```
+
+### We can use a pheatmap to check the connection between variables
+
+```{r}
+pheatmap(data[,3:19],
+         cluster_rows = TRUE,
+         cluster_cols = TRUE,
+         clustering_method = "complete")
+```
+
+## Visualizations
+
+```{r}
+#Importing section wise data set
+data_section_wise<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned section wise data set with daily total absents for a section.csv")
+data_section_wise <- mutate(data_section_wise,Date = as.Date(data_section_wise$Date,format = "%Y-%m-%d"))
+
+#Importing shift wise data set
+data_shift_wise<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned data grouped by date and shift with column of sum of shift.csv")
+data_shift_wise <- mutate(data_shift_wise,Date = as.Date(data_shift_wise$Date,format = "%Y-%m-%d"))
+
+#Importing date wise data set
+data_date_wise<-read.csv("C:/Users/Pasindu/Desktop/MAS Project/cleaned data grouped by date with column total absent.csv")
+data_date_wise <- mutate(data_date_wise,Date = as.Date(data_date_wise$Date,format = "%Y-%m-%d"))
+```
+
+### We use plotly library for better visuals
+### Following graph shows section wise daily absents. Here we can see sections do not follow the same patterns thus some sections has significantly higher absent numbers than others. For an example, section D notably has higher absent number than others.
+
+## Section wise daily absents
+```{r}
+palette_1<-c("red","blue","green","orange")
+plot_ly(data = data_section_wise,
+        x = ~Date,
+        y = ~data_section_wise$total_absent_section,
+        type = "scatter",
+        color = ~as.factor(Section),
+        colors = palette_1,
+        symbol = ~as.factor(Section),
+        marker = list(size = 5)
+        
+)%>%
+  layout(title = "Section Wise Daily Absents",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Total Absents"))
+
+```
+## Shift wise absents
+### Here we can see both A and B shifts follows a same pattern where from mid Aprail, absent numbers where gradually decreasing until end of September
+```{r}
+#Shift wise
+#Creating color palette
+palette_2<-c("red","orange")
+plot_ly(data = data_shift_wise,
+        x = ~Date,
+        y = ~data_shift_wise$total_absent_shift,
+        type = "scatter",
+        color = ~as.factor(Shift),
+        colors = palette_2,
+        symbol = ~as.factor(Shift),
+        marker = list(size = 5)
+        
+)%>%
+  layout(title = "Shift Wise Daily Absents",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Total Absents"))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
